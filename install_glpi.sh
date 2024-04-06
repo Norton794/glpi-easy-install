@@ -6,25 +6,44 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# Update package list and upgrade all packages
-apt update
-apt -y upgrade
+# Function to install MariaDB if not already installed
+install_mariadb() {
+    echo "Installing MariaDB..."
+    apt -y install mariadb-server
+}
 
-# Install MariaDB server and perform security configuration
-apt -y install mariadb-server
-mysql_secure_installation
+# Function to perform MariaDB security configuration
+secure_mariadb() {
+    echo "Performing MariaDB security configuration..."
+    mysql_secure_installation
+}
 
-# Prompt the user for the MariaDB database password
-read -sp "Enter the MariaDB database password: " db_password
+# Function to prompt the user for the MariaDB root password
+get_mariadb_password() {
+    read -sp "Enter the MariaDB root password: " db_password
+}
+
+# Check if MariaDB is installed
+if ! command -v mysql &> /dev/null; then
+    install_mariadb
+    secure_mariadb
+fi
+
+# Prompt the user for the MariaDB root password
+get_mariadb_password
 
 # Create the GLPI database, a user, and grant permissions
 mysql -u root -p$db_password <<MYSQL_SCRIPT
-CREATE DATABASE glpi;
-CREATE USER 'glpi'@'%' IDENTIFIED BY '$db_password';
+CREATE DATABASE IF NOT EXISTS glpi;
+CREATE USER IF NOT EXISTS 'glpi'@'%' IDENTIFIED BY '$db_password';
 GRANT ALL PRIVILEGES ON glpi.* TO 'glpi'@'%';
 FLUSH PRIVILEGES;
 EXIT;
 MYSQL_SCRIPT
+
+# Update package list and upgrade all packages
+apt update
+apt -y upgrade
 
 # Install necessary PHP packages
 apt -y install php php-{curl,zip,bz2,gd,imagick,intl,apcu,memcache,imap,mysql,cas,ldap,tidy,pear,xmlrpc,pspell,mbstring,json,iconv,xml,gd,xsl}
