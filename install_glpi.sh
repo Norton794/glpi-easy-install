@@ -66,5 +66,8 @@ mv glpi /var/www/html/
 # Set correct permissions for the GLPI directory
 chown -R www-data:www-data /var/www/html/glpi
 
-# Open the browser to the GLPI installation page
-xdg-open http://localhost/glpi
+# Get server IP address
+server_ip=$(hostname -I | awk '{print $1}')
+
+# Display the access address for GLPI
+echo "You can access GLPI by visiting http://$server_ip/glpi"
